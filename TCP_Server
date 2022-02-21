@@ -1,0 +1,21 @@
+import socket
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+"""AF_INET means we are using using ipV4"""
+"""SOCK_STREAM means we are using a TCP (a connection type protocol that needs a handshake)"""
+
+host = ""
+port = 5000
+
+server.bind((host, port))
+
+server.listen(5)
+
+""" 5 = how many we can listen to at a time"""
+
+while True:
+    client, address = server.accept()
+    print("Received message from " + str(address))
+    client.send(b"Hello from server!")
+    client.close()
